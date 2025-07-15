@@ -1,0 +1,11 @@
+# Core Dependencies
+requests>=2.31.0
+numpy>=1.24.0
+python-dotenv>=1.0.0
+
+# Optional: Testing and Development
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Optional: Deployment and Logging
+paramiko>=3.3.1  # For SSH operations

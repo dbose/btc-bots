@@ -4,13 +4,17 @@ Enhanced deployment script for BTC bot with advanced log exploration
 """
 import subprocess
 import sys
+from dotenv import load_dotenv
 import os
 from pathlib import Path
 from datetime import datetime, timedelta
 
+# Load variables from .env into os.environ
+load_dotenv()
+
 # Configuration
-EC2_IP = "ec2-44-204-146-74.compute-1.amazonaws.com"  # Replace with your IP
-KEY_PATH = "//btc-bot-key.pem"  # Replace with your key path
+EC2_IP = os.getenv('AWS_EC2_PUBLIC_IP')  # Replace with your IP
+KEY_PATH = "/Users/dbose/projects/btc-bots/btc-bot-key.pem"  # Replace with your key path
 REMOTE_PATH = "/home/ec2-user/btc-bot"
 
 def run_command(cmd, description, capture_output=True):

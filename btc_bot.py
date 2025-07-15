@@ -10,6 +10,7 @@ import hmac
 import time
 import json
 import logging
+from dotenv import load_dotenv
 import os
 import requests
 import numpy as np
@@ -18,6 +19,8 @@ from typing import Dict, Tuple, Optional
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError, URLError
 
+# Load variables from .env into os.environ
+load_dotenv()
 
 # Secure configuration using environment variables
 class Config:
