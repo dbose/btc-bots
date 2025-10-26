@@ -28,7 +28,6 @@ jobs:
 
     - name: Start EC2 instance
       run: |
-        echo "Starting EC2 instance..."
         aws ec2 start-instances --instance-ids $EC2_INSTANCE_ID
         aws ec2 wait instance-running --instance-ids $EC2_INSTANCE_ID
         echo "EC2 instance is running"
@@ -46,6 +45,17 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2.key
+        chmod 600 ~/.ssh/ec2.key
+        echo "Host ec2
+          HostName ${{ secrets.EC2_PUBLIC_IP }}
+          User ec2-user
+          IdentityFile ~/.ssh/ec2.key
+          StrictHostKeyChecking no" > ~/.ssh/config
+
     - name: Create .env file
       run: |
         echo "AWS_EC2_PUBLIC_IP=${{ secrets.EC2_PUBLIC_IP }}" > .env
@@ -56,6 +66,8 @@ jobs:
         echo "MIN_WEEKLY_AMOUNT=${{ secrets.MIN_WEEKLY_AMOUNT }}" >> .env
 
     - name: Deploy and run bot
+      env:
+        KEY_PATH: ~/.ssh/ec2.key
       run: |
         python deploy.py deploy
         python deploy.py test
@@ -70,10 +82,8 @@ jobs:
     - name: Stop EC2 instance
       if: always()
       run: |
-        echo "Stopping EC2 instance..."
         aws ec2 stop-instances --instance-ids $EC2_INSTANCE_ID
         aws ec2 wait instance-stopped --instance-ids $EC2_INSTANCE_ID
-        echo "EC2 instance stopped"
 
     - name: Save logs as artifact
       if: always()

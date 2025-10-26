@@ -14,7 +14,7 @@ load_dotenv()
 
 # Configuration
 EC2_IP = os.getenv('AWS_EC2_PUBLIC_IP')  # Replace with your IP
-KEY_PATH = "/Users/dbose/projects/btc-bots/btc-bot-key.pem"  # Replace with your key path
+KEY_PATH = os.getenv('KEY_PATH')
 REMOTE_PATH = "/home/ec2-user/btc-bot"
 
 def run_command(cmd, description, capture_output=True):
