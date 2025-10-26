@@ -58,6 +58,16 @@ jobs:
         echo "dns=$DNS" >> "$GITHUB_OUTPUT"
         echo "Public DNS: $DNS"
 
+    - name: Prime known_hosts for EC2
+      run: |
+        mkdir -p ~/.ssh
+        touch ~/.ssh/known_hosts
+        chmod 600 ~/.ssh/known_hosts
+        # remove any old entries for this host
+        ssh-keygen -R "${{ steps.host.outputs.dns }}" 2>/dev/null || true
+        # add current host key (RSA/ED25519/ECDSA—grab whatever the instance serves)
+        ssh-keyscan -H "${{ steps.host.outputs.dns }}" >> ~/.ssh/known_hosts
+
     - name: Setup SSH
       run: |
         mkdir -p ~/.ssh
@@ -67,7 +77,7 @@ jobs:
           HostName ${{ steps.host.outputs.dns }}
           User ec2-user
           IdentityFile ~/.ssh/ec2.key
-          StrictHostKeyChecking no" > ~/.ssh/config
+          StrictHostKeyChecking accept-new" > ~/.ssh/config
 
     - name: Create .env file
       run: |
