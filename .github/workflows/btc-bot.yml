@@ -88,15 +88,16 @@ jobs:
         echo "MAX_WEEKLY_AMOUNT=${{ secrets.MAX_WEEKLY_AMOUNT }}" >> .env
         echo "MIN_WEEKLY_AMOUNT=${{ secrets.MIN_WEEKLY_AMOUNT }}" >> .env
 
-    - name: Deploy and run bot
+    - name: Deploy and dry run
       env:
         KEY_PATH: ~/.ssh/ec2.key
         AWS_EC2_PUBLIC_IP: ${{ steps.host.outputs.dns }}
       run: |
         python deploy.py deploy
-        python deploy.py test
+        python deploy.py dry 
         sleep 10
         python deploy.py logs today > today_log.txt
+        cat today_log.txt
 
     - name: Upload logs to S3
       run: |
