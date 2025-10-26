@@ -81,6 +81,7 @@ python deploy.py logs portfolio  # View portfolio progress
 ```
 
 ### Configuration for GitHub Actions 🤖& Scheduling ⏰
+
 AWS_ACCESS_KEY_ID: AWS access key
 AWS_SECRET_ACCESS_KEY: AWS secret key
 EC2_INSTANCE_ID: EC2 instance ID
