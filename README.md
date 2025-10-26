@@ -68,6 +68,7 @@ Deploy to EC2 using the deployment script:
 ```bash
 python deploy.py deploy  # Deploy bot
 python deploy.py test   # Test execution
+python deploy.py dry    # dry run mode
 python deploy.py check  # Verify environment
 ```
 
