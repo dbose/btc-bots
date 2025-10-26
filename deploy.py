@@ -40,41 +40,45 @@ def run_command(cmd, description, capture_output=True):
 
 
 def deploy_bot():
-    """Deploy bot to EC2"""
+    """Deploy bot to EC2 and install dependencies"""
     print("🚀 Deploying BTC Bot to EC2...")
 
-    # Check if files exist
-    if not Path("btc_bot.py").exists():
-        print("❌ btc_bot.py not found in current directory!")
+    # Create remote directories
+    setup_cmd = f'''ssh -i "{KEY_PATH}" ec2-user@{EC2_IP} "
+        mkdir -p {REMOTE_PATH}/scripts {REMOTE_PATH}/logs
+        chmod 700 {REMOTE_PATH}/scripts
+    "'''
+    if not run_command(setup_cmd, "Setting up remote directories"):
         return False
 
-    # Upload main bot file
-    upload_cmd = f'scp -i "{KEY_PATH}" btc_bot.py ec2-user@{EC2_IP}:{REMOTE_PATH}/'
-    if not run_command(upload_cmd, "Uploading btc_bot.py"):
+    # Install dependencies
+    install_cmd = f'''ssh -i "{KEY_PATH}" ec2-user@{EC2_IP} "
+        python3 -m pip install --user requests numpy python-dotenv
+    "'''
+    if not run_command(install_cmd, "Installing dependencies"):
         return False
 
-    # Upload env file
-    upload_cmd = f'scp -i "{KEY_PATH}" .env ec2-user@{EC2_IP}:{REMOTE_PATH}/'
-    if not run_command(upload_cmd, "Uploading .env"):
-        return False
+    # Upload files with proper permissions
+    files_to_upload = [
+        ("btc_bot.py", "644"),
+        (".env", "600"),
+        ("scripts/run_bot_secure.sh", "700")
+    ]
 
-    # Upload any config files
-    if Path("config").exists():
-        config_cmd = f'scp -i "{KEY_PATH}" -r config/ ec2-user@{EC2_IP}:{REMOTE_PATH}/'
-        run_command(config_cmd, "Uploading config files")
+    for file, perms in files_to_upload:
+        if not Path(file).exists():
+            print(f"❌ {file} not found!")
+            continue
 
-    # Upload scripts if they exist
-    if Path("scripts").exists():
-        scripts_cmd = f'scp -i "{KEY_PATH}" -r scripts/ ec2-user@{EC2_IP}:{REMOTE_PATH}/'
-        run_command(scripts_cmd, "Uploading scripts")
+        upload_cmd = f'scp -i "{KEY_PATH}" {file} ec2-user@{EC2_IP}:{REMOTE_PATH}/{file}'
+        if not run_command(upload_cmd, f"Uploading {file}"):
+            return False
 
-    # Test syntax on remote server
-    test_cmd = f'ssh -i "{KEY_PATH}" ec2-user@{EC2_IP} "cd {REMOTE_PATH} && python3 -m py_compile btc_bot.py"'
-    if not run_command(test_cmd, "Testing syntax on remote server"):
-        return False
+        chmod_cmd = f'''ssh -i "{KEY_PATH}" ec2-user@{EC2_IP} "chmod {perms} {REMOTE_PATH}/{file}"'''
+        if not run_command(chmod_cmd, f"Setting permissions for {file}"):
+            return False
 
     print("🎉 Deployment successful!")
-    print(f"📡 Bot is ready on {EC2_IP}")
     return True
 
 
@@ -82,29 +86,54 @@ def test_bot():
     """Test bot execution on remote server with environment loading"""
     print("🧪 Testing bot execution...")
 
-    # Use the secure script that loads environment variables
     test_cmd = f'''ssh -i "{KEY_PATH}" ec2-user@{EC2_IP} "
         cd {REMOTE_PATH}
 
-        # Check if secure script exists
-        if [ -f scripts/run_bot_secure.sh ]; then
-            echo '🔐 Using secure execution script...'
-            ./scripts/run_bot_secure.sh
-        elif [ -f .env ]; then
-            echo '🔐 Loading environment and running bot...'
-            export \\$(grep -v '^#' .env | grep -v '^\\$' | xargs)
-            python3 btc_bot.py
-        else
-            echo '❌ No .env file found and no secure script available'
-            echo 'Please ensure .env file exists in {REMOTE_PATH}'
+        # Check dependencies
+        echo '📦 Checking Python dependencies...'
+        python3 -m pip list | grep -E 'requests|numpy|python-dotenv' || {{
+            echo '❌ Missing dependencies'
             exit 1
-        fi
+        }}
+
+        # Check files
+        echo '📄 Checking required files...'
+        for file in btc_bot.py .env scripts/run_bot_secure.sh; do
+            if [ ! -f "$file" ]; then
+                echo "❌ Missing file: $file"
+                exit 1
+            fi
+        done
+
+        # Check permissions
+        echo '🔒 Checking file permissions...'
+        [ $(stat -c %a .env) = "600" ] || echo "⚠️ Warning: .env permissions should be 600"
+        [ $(stat -c %a scripts/run_bot_secure.sh) = "700" ] || echo "⚠️ Warning: run_bot_secure.sh should be 700"
+
+        echo '🔄 Running bot test...'
+        ./scripts/run_bot_secure.sh test
     "'''
 
     if run_command(test_cmd, "Running bot test"):
         print("✅ Bot test successful! Check the logs for details.")
     else:
         print("❌ Bot test failed - check the logs")
+
+
+def dry_run():
+    """Execute bot in dry-run mode"""
+    print("🔬 Executing bot in dry-run mode...")
+
+    dry_cmd = f'''ssh -i "{KEY_PATH}" ec2-user@{EC2_IP} "
+        cd {REMOTE_PATH}
+        export DRY_RUN=1
+        ./scripts/run_bot_secure.sh
+    "'''
+
+    if run_command(dry_cmd, "Running dry-run"):
+        print("✅ Dry-run completed successfully! Check the logs for details.")
+    else:
+        print("❌ Dry-run failed - check the logs")
 
 
 def check_environment():
@@ -527,6 +556,8 @@ if __name__ == "__main__":
         deploy_bot()
     elif command == "test":
         test_bot()
+    elif command == "dry":
+        dry_run()
     elif command == "check":
         check_environment()
     elif command == "logs":

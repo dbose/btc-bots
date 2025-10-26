@@ -79,3 +79,15 @@ python deploy.py logs live       # Live log viewer
 python deploy.py logs stats      # View statistics
 python deploy.py logs portfolio  # View portfolio progress
 ```
+
+### Configuration for GitHub Actions 🤖& Scheduling ⏰
+AWS_ACCESS_KEY_ID: AWS access key
+AWS_SECRET_ACCESS_KEY: AWS secret key
+EC2_INSTANCE_ID: EC2 instance ID
+EC2_PUBLIC_IP: EC2 public IP address
+S3_BUCKET_NAME: S3 bucket name for logs
+BTCMARKETS_API_KEY: BTCMarkets API key
+BTCMARKETS_PRIVATE_KEY: BTCMarkets private key
+BASE_WEEKLY_AMOUNT: Base weekly purchase amount
+MAX_WEEKLY_AMOUNT: Maximum weekly amount
+MIN_WEEKLY_AMOUNT: Minimum weekly amount

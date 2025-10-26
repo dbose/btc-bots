@@ -196,7 +196,9 @@ class BTCMarketsClient:
 class BTCAccumulationBot:
     """BTC Accumulation Bot using proven BTCMarkets client"""
 
-    def __init__(self):
+    def __init__(self, dry_run=False):
+        # Add dry_run flag
+        self.dry_run = dry_run
         # Validate configuration on startup
         Config.validate()
         self.config = Config()
@@ -399,6 +401,16 @@ class BTCAccumulationBot:
             return {}
 
     def execute_buy_order(self, amount_aud: float) -> Dict:
+        """Execute market buy order using official client"""
+        if self.dry_run:
+            logging.info("🔬 DRY RUN MODE - Order would be:")
+            logging.info(f"💵 Amount: ${amount_aud:.2f} AUD")
+            current_price = self.get_current_price()
+            btc_amount = amount_aud / current_price
+            logging.info(f"🪙 BTC Amount: {btc_amount:.8f} BTC")
+            logging.info(f"💰 Price: ${current_price:,.2f} AUD")
+            return {'success': True, 'dry_run': True}
+
         """Execute market buy order using official client"""
         if amount_aud < self.config.MIN_WEEKLY_AMOUNT:
             logging.info(f"Amount ${amount_aud:.2f} below minimum ${self.config.MIN_WEEKLY_AMOUNT}, skipping")
