@@ -46,20 +46,35 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Get current public IP
+      id: ip
+      run: |
+        IP=$(aws ec2 describe-instances --instance-ids $EC2_INSTANCE_ID \
+          --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
+        # Wait until IP is assigned (rare but can be null briefly)
+        for i in {1..20}; do
+          if [ "$IP" != "None" ] && [ -n "$IP" ]; then break; fi
+          sleep 6
+          IP=$(aws ec2 describe-instances --instance-ids $EC2_INSTANCE_ID \
+            --query "Reservations[0].Instances[0].PublicIpAddress" --output text)
+        done
+        echo "ip=$IP" >> "$GITHUB_OUTPUT"
+        echo "Public IP: $IP"
+
     - name: Setup SSH
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2.key
         chmod 600 ~/.ssh/ec2.key
         echo "Host ec2
-          HostName ${{ secrets.EC2_PUBLIC_IP }}
+          HostName ${{ steps.ip.outputs.ip }}
           User ec2-user
           IdentityFile ~/.ssh/ec2.key
           StrictHostKeyChecking no" > ~/.ssh/config
 
     - name: Create .env file
       run: |
-        echo "AWS_EC2_PUBLIC_IP=${{ secrets.EC2_PUBLIC_IP }}" > .env
+        echo "AWS_EC2_PUBLIC_IP=${{ steps.ip.outputs.ip }}" > .env
         echo "BTCMARKETS_API_KEY=${{ secrets.BTCMARKETS_API_KEY }}" >> .env
         echo "BTCMARKETS_PRIVATE_KEY=${{ secrets.BTCMARKETS_PRIVATE_KEY }}" >> .env
         echo "BASE_WEEKLY_AMOUNT=${{ secrets.BASE_WEEKLY_AMOUNT }}" >> .env
@@ -69,7 +84,7 @@ jobs:
     - name: Deploy and run bot
       env:
         KEY_PATH: ~/.ssh/ec2.key
-        AWS_EC2_PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
+        AWS_EC2_PUBLIC_IP: ${{ steps.ip.outputs.ip }}
       run: |
         python deploy.py deploy
         python deploy.py test
