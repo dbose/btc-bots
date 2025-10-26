@@ -9,6 +9,7 @@ env:
   AWS_REGION: us-east-1
   EC2_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
   LOG_BUCKET: ${{ secrets.S3_BUCKET_NAME }}
+  AWS_INSTANCE_SG_ID: ${{ secrets.AWS_INSTANCE_SG_ID }}
 
 jobs:
   run-btc-bot:
@@ -68,6 +69,7 @@ jobs:
     - name: Deploy and run bot
       env:
         KEY_PATH: ~/.ssh/ec2.key
+        AWS_EC2_PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
       run: |
         python deploy.py deploy
         python deploy.py test
